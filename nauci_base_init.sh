@@ -62,7 +62,7 @@ brackets as the leading text of the parameter's definition.
        -s: switch to an interactive shell instead of exiting.
 
        -h: displays this help document.
-       
+
 EOF
 ######################################################################
 
@@ -100,7 +100,7 @@ validate_name() {
     return $(test -n "$(echo "$1" | grep -E "$USER_GROUP_NAME_REGEX")")
 }
 
-does_group_exist() {    
+does_group_exist() {
     return $(test -n "$(getent group $1)")
 }
 
@@ -132,7 +132,7 @@ do
     case $opt in
         n)  readarray -td, userNames <<< "$OPTARG,"; unset userNames[-1];
             for userName in ${userNames[@]}
-            do                
+            do
                 if ! validate_name "$userName"
                 then
                     print_usage_with_error_message "$userName is not a valid username."
@@ -158,7 +158,7 @@ do
                exit 1
            fi
            ;;
-        
+
         D) if validate_id "$OPTARG"
            then
                developerGid="$OPTARG"
@@ -176,7 +176,7 @@ do
                 exit 1
             fi
             ;;
-        
+
         U) if validate_id "$OPTARG"
            then
                usbGid=$OPTARG
@@ -191,7 +191,7 @@ do
 
         s) doSwitchToInteractiveShell=$TRUE
            ;;
-        
+
         '?') print_usage_with_error_message "invalid option -$OPTARG"
              exit 1
              ;;
@@ -224,7 +224,7 @@ then
 
     groupadd -g "$developerGid" "$developerGroupName"
     groupNames+=("$developerGroupName")
-    
+
 elif ! $(is_group_gid "$developerGroupName" "$developerGid")
 then
     print_usage_with_error_message "The GID of the existing developer group named $developerGroupName does not match the provided GID $developerGid"
@@ -253,23 +253,20 @@ fi
 #######################################################################################################
 # Do not bind forwarding server to the loopback address, but instead bind it to the wild card address #
 #######################################################################################################
-cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bk 
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bk
 sed 's/#[[:space:]]*X11UseLocalhost yes/X11UseLocalhost no/' /etc/ssh/sshd_config.bk > /etc/ssh/sshd_config
 
 ##############################
 # Create or update each user #
 ##############################
 for userName in ${userNames[@]}
-do                
+do
 
     # if user does not already exist then create the user, otherwise modify the user based on parameters
     if [ -n "$(getent passwd $userName)" ]
     then
-        #printf "\nthe user %s exists\nAdding user to the groups [%s]" "$userName" "${groupNames[*]}"
         ( IFS=,; usermod "$userName" -aG "${groupNames[*]}" )
     else
-        #printf "\nthe user %s does not exist\nAdding the groups [%s]" "$userName" "${groupNames[*]}"
-        #( IFS=,; useradd "$userName" -mG "${groupNames[*]}" -f 0 -e 2018-01-01)
         ( IFS=,; useradd "$userName" -mG "${groupNames[*]}" )
     fi
 
@@ -282,7 +279,7 @@ do
     mkdir ${userHome}/.ssh/
     sed 's/#[[:space:]]*ForwardX11 no/ForwardX11 yes/' /etc/ssh/ssh_config | sed 's/#[[:space:]]*ForwardX11Trusted yes/ForwardX11Trusted yes/' > $userHome/.ssh/config
     chown -R ${userName}:${userName} ${userHome}/.ssh/
-    
+
 done
 
 #############################################
@@ -290,7 +287,6 @@ done
 #############################################
 if [ $doSwitchToInteractiveShell == $TRUE ]
 then
-    #printf "switching to interactive shell"
     exec bash -l
 fi
 
