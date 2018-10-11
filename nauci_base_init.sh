@@ -282,6 +282,12 @@ do
 
 done
 
+####################
+# Start ssh daemon #
+####################
+
+service ssh start
+
 #############################################
 # Optionally switch to an interactive shell #
 #############################################
