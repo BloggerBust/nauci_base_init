@@ -24,22 +24,22 @@ Author: trevor.wilson@nauci.org
 
 The nauci_base_init.sh is the entry point for the nauci_base_entry
 docker image and is intended to facilitate the initial setup of a
-docker container for the purposes of software development. User's may
+docker container for the purposes of software development. Users may
 be added to a list of existing groups with the -G option. The -G
-option will not remove existing user's from unlisted groups. Every
-user will be added to a developer group which can be set with the -d
-option. If the host is setup with a with a developer group that has a
-GID matching the container's developer group GID then SGID can be used
-to grant both host and container user's privileges to attached volumes
-without the need of extending the all encompassing docker
-privileges. Each developer will also be added to a USB group. The idea
-is similar to the developer group. The USB group will grant access to
-attached USB devices without the need of extending the all
-encompassing docker privileges. For this to work the GID of the USB
-group must match the GID set on the USB bus device nodes of the host.
+option will not remove existing users from unlisted groups. Every user
+will be added to a developer group which can be set with the -d
+option. If the host is setup with a developer group that has a GID
+matching the container's developer group GID then the setgid mode bit
+can be used to grant both host and container user privileges to
+attached volumes without the need of extending the all encompassing
+docker privileges. Each developer will also be added to a USB
+group. The idea is similar to the developer group. The USB group will
+grant access to attached USB devices without the need of extending
+docker privileges. For this to work the GID of the USB group must
+match the GID set on the USB bus device nodes of the host.
 
 Some optional parameters have default values. Defaults are enclosed in
-brackets as the leading text of the parameter's definition.
+brackets as the leading text of the parameters definition.
 
        -n: a comma separated list of user names. A new user will be
            created for each username in the list. Each newly created
@@ -62,7 +62,6 @@ brackets as the leading text of the parameter's definition.
        -s: switch to an interactive shell instead of exiting.
 
        -h: displays this help document.
-
 EOF
 ######################################################################
 
