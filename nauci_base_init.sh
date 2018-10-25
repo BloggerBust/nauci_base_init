@@ -14,13 +14,17 @@ readonly TRUE=0
 ######################################################################
 read -r -d '' USAGE << EOF
 Usage: nauci_base_init -hs [-n username[,...]] [-G groupname[,...]]
-       [-d groupname] [-D groupid] [-u groupname] [-U groupid]
+       [-d groupname] [-D groupid] [-u groupname] [-U groupid] [-v
+       volume]
 EOF
 
 read -r -d '' HELP_DOCUMENTATION << EOF
 $USAGE
 
 Author: trevor.wilson@nauci.org
+Depends on: POSIX ACL and extended attributes. It may work on other
+ACL types depending on how ACL interoperability is handled, but I have
+not tested that behavior.
 
 The nauci_base_init.sh is the entry point for the nauci_base_entry
 docker image and is intended to facilitate the initial setup of a
@@ -58,6 +62,14 @@ brackets as the leading text of the parameters definition.
        -u: [usb] the name of the usb group.
 
        -U: [85] the GID of the usb group.
+       
+       -v: [/shared] a directory passed to docker-run as a volume with
+        posixacl support enabled. For each user passed to the -n
+        option a directory with the same name as that user will be
+        created as a child of /shared. Default ACL rules will be set
+        giving the developer group rwx permissions on the named
+        directories. A soft link from the user's dev directory will be
+        created to their named directory under /shared.
 
        -s: switch to an interactive shell instead of exiting.
 
@@ -69,6 +81,7 @@ EOF
 # Input Parameters #
 ####################
 
+defaultDeveloperVolumeName="/shared" developerVolumeName=
 defaultDeveloperGroupName="developer" developerGroupName=
 defaultDeveloperGid=2000 developerGid=
 defaultUsbGroupName="usb" usbGroupName=
@@ -126,7 +139,7 @@ validate_supplementary_group_names() {
 # Optional Parameter Parsing #
 ##############################
 
-while getopts :hn:g:d:D:u:U:s opt
+while getopts :hn:u:U:g:d:D:v:s opt
 do
     case $opt in
         n)  readarray -td, userNames <<< "$OPTARG,"; unset userNames[-1];
@@ -167,6 +180,14 @@ do
            fi
            ;;
 
+        v) if [ -d "$OPTARG" ]
+           then
+               developerVolumeName=$OPTARG
+           else
+               print_usage_with_error_message "Invalid Developer Volume: $OPTARG\nThe developer volume does not exist."
+               exit 1
+           fi
+           ;;
         u) if validate_name "$OPTARG"
             then
                 usbGroupName="$OPTARG"
@@ -201,6 +222,7 @@ shift $((OPTIND - 1)) #this leaves any remaining arguments, but removes the opti
 ##################
 # Apply defaults #
 ##################
+developerVolumeName=${developerVolumeName:-$defaultDeveloperVolumeName}
 developerGroupName=${developerGroupName:-$defaultDeveloperGroupName}
 developerGid=${developerGid:-$defaultDeveloperGid}
 usbGroupName=${usbGroupName:-$defaultUsbGroupName}
@@ -209,6 +231,16 @@ usbGid=${usbGid:-$defaultUsbGid}
 #################################
 # Process all of the parameters #
 #################################
+
+######################################################################
+# If the developer volume is the default value then validate that it #
+# exists                                                             #
+######################################################################
+if [ "$defaultDeveloperVolumeName" = "$developerVolumeName" ] && ! [ -d "$developerVolumeName" ]
+then
+    print_usage_with_error_message "Invalid Developer Volume: $developerVolumeName\nThe developer volume does not exist. Since you have not specified a developer volume with the -v option the default developer option was used. It is required that you run the image with a volume attached to the developer volume path."
+    exit 1
+fi
 
 ################################################
 # Create developer group if it does not exist. #
@@ -264,18 +296,41 @@ do
     # if user does not already exist then create the user, otherwise modify the user based on parameters
     if [ -n "$(getent passwd $userName)" ]
     then
-        ( IFS=,; usermod "$userName" -aG "${groupNames[*]}" )
+        ( IFS=,; usermod ${userName} -aG "${groupNames[*]}" )
     else
-        ( IFS=,; useradd "$userName" -mG "${groupNames[*]}" )
+        ( IFS=,; useradd ${userName} -mG "${groupNames[*]}" )
     fi
 
-    # create the dev directory with setgid and develoepr group ownership
-    userHome="$(getent passwd ${userName} | cut -d: -f6)"
-    mkdir -m 2775 ${userHome}/dev
-    chown ${userName}:${developerGroupName} ${userHome}/dev
+    # create the dev directory with setgid and develoepr group ownership    
+    realUserDevDirectory="${developerVolumeName}/${userName}/dev"
+    if ! [ -d "${realUserDevDirectory}" ] || ! [ -g "${realUserDevDirectory}" ]
+    then
+        mkdir -p ${realUserDevDirectory}
+        chown :${developerGroupName} ${realUserDevDirectory}
+        chmod 2770 ${realUserDevDirectory}
+    fi
 
+    # if the default effective ACL permissions have not been set for
+    # the developer group, then let's set them now as a convenience
+    # since it will be needed. The ACL can always be altered later
+    # from a running container.
+    if [ -z "$(getfacl -cdep ${realUserDevDirectory} | grep -i ${developerGroupName}:rw.*effective)" ]
+    then
+        # this will fail if your host / volume is not configured correctly for ACLs
+        # As an example zfs *xattr property* must be set to *sa* and the *acltype* must be set to *posixacl* on the host volume
+        setfacl -Rdm g:${developerGroupName}:rwx ${realUserDevDirectory}
+    fi
+
+    # link the dev directory to the user's home directory
+    userHome="$(getent passwd ${userName} | cut -d: -f6)"
+    if ! [ -h "${userHome}/dev" ]
+    then
+        ln -sn ${realUserDevDirectory} ${userHome}/dev
+        chown -h ${userName}:${developerGroupName} ${userHome}/dev
+    fi
+    
     # ssh
-    mkdir ${userHome}/.ssh/
+    mkdir -p ${userHome}/.ssh/
     sed 's/#[[:space:]]*ForwardX11 no/ForwardX11 yes/' /etc/ssh/ssh_config | sed 's/#[[:space:]]*ForwardX11Trusted yes/ForwardX11Trusted yes/' > $userHome/.ssh/config
     chown -R ${userName}:${userName} ${userHome}/.ssh/
 
@@ -290,7 +345,7 @@ service ssh start
 #############################################
 # Optionally switch to an interactive shell #
 #############################################
-if [ $doSwitchToInteractiveShell == $TRUE ]
+if [ ${doSwitchToInteractiveShell} == ${TRUE} ]
 then
     exec bash -l
 fi

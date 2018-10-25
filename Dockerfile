@@ -5,6 +5,7 @@ RUN apt-get update -qqy; \
     apt-get upgrade -qqy; \
     apt-get -qqy install \
             ca-certificates \
+            acl \
             sudo \
             ssh;
 
