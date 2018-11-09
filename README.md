@@ -11,6 +11,9 @@ The script expects a volume to be attached to the container. The volume must sup
 # How can it be used? #
 The host user can send commands to the guest user via ssh to carry out dependency specific operations. These operations may create, update or delete project related files shared between the host and guest. This allows a developer to code, compile, debug and test an application without having any project dependencies installed on the host system and without context switching from the host to the container environment. For a complete example of how this is achieved please read [Encapsulate Angular WebExtension Dependencies In a Docker Image](https://bloggerbust.ca/post/encapsulate-angular-webextension-dependencies-in-a-docker-image/).
 
+# How do I pronounce nauci #
+The word nauci is pronounced *noh-see* and it means few or almost nothing.
+
 # Prerequisites #
 The attached volume must have a file system with POSIX ACL support and extended attributes enabled. It might be the case that other ACL models will also work thanks to ACL interoperability. However, [ACL interoperability is not standardized](http://wiki.linux-nfs.org/wiki/index.php/ACLs#The%5FACL%5FInteroperability%5FProblem) and I have not tested its behaviour.
 
