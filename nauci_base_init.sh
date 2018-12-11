@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/env bash
 
 #############
 # Constants #
@@ -284,8 +284,7 @@ fi
 #######################################################################################################
 # Do not bind forwarding server to the loopback address, but instead bind it to the wild card address #
 #######################################################################################################
-cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bk
-sed 's/#[[:space:]]*X11UseLocalhost yes/X11UseLocalhost no/' /etc/ssh/sshd_config.bk > /etc/ssh/sshd_config
+sed 's/#[[:space:]]*X11UseLocalhost yes/X11UseLocalhost no/' /etc/ssh/sshd_config > /etc/ssh/sshd_config.bk && mv /etc/ssh/sshd_config.bk /etc/ssh/sshd_config
 
 ##############################
 # Create or update each user #
@@ -296,9 +295,9 @@ do
     # if user does not already exist then create the user, otherwise modify the user based on parameters
     if [ -n "$(getent passwd $userName)" ]
     then
-        ( IFS=,; usermod ${userName} -aG "${groupNames[*]}" )
+        ( IFS=,; usermod ${userName} -s /bin/bash -aG "${groupNames[*]}" )
     else
-        ( IFS=,; useradd ${userName} -mG "${groupNames[*]}" )
+        ( IFS=,; useradd ${userName} -s /bin/bash -mG "${groupNames[*]}" )
     fi
 
     # create the dev directory with setgid and develoepr group ownership    

@@ -7,7 +7,8 @@ RUN apt-get update -qqy; \
             ca-certificates \
             acl \
             sudo \
-            ssh;
+            ssh; \    
+    apt-get clean;
 
 EXPOSE 22
 
