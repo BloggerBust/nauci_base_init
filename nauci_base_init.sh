@@ -15,7 +15,7 @@ readonly TRUE=0
 read -r -d '' USAGE << EOF
 Usage: nauci_base_init -hs [-n username[,...]] [-G groupname[,...]]
        [-d groupname] [-D groupid] [-u groupname] [-U groupid] [-v
-       volume]
+       volume] [ command [...] ]
 EOF
 
 read -r -d '' HELP_DOCUMENTATION << EOF
@@ -24,7 +24,7 @@ $USAGE
 Author: trevor.wilson@nauci.org
 Depends on: POSIX ACL and extended attributes. It may work on other
 ACL types depending on how ACL interoperability is handled, but I have
-not tested that behavior.
+not tested that behaviour.
 
 The nauci_base_init.sh is the entry point for the nauci_base_entry
 docker image and is intended to facilitate the initial setup of a
@@ -64,18 +64,34 @@ brackets as the leading text of the parameters definition.
        -U: [85] the GID of the usb group.
        
        -v: [/shared] a directory passed to docker-run as a volume with
-        posixacl support enabled. For each user passed to the -n
-        option a directory with the same name as that user will be
-        created as a child of /shared. Default ACL rules will be set
-        giving the developer group rwx permissions on the named
-        directories. A soft link from the user's dev directory will be
-        created to their named directory under /shared.
+           posixacl support enabled. For each user passed to the -n
+           option a directory with the same name as that user will be
+           created as a child of /shared. Default ACL rules will be
+           set giving the developer group rwx permissions on the named
+           directories. A soft link from the user's dev directory will
+           be created to their named directory under /shared.
 
        -s: switch to an interactive shell instead of exiting.
 
        -h: displays this help document.
+
+The first none-optional parameter will be evaluated as a shell
+command.
 EOF
 ######################################################################
+
+############################
+# Interactive Shell Prompt #
+############################
+read -r -d '' INTERACTIVE_SHELL_WELCOME_MSG << EOF
+##########################################################################
+# Welcome. You have entered an interactive shell. This is a good time to #
+# set user passwords. When you are finished, run the exit command to     #
+# continue with the init script. Any trailing commands that you entered  #
+# will then execute.                                                     #
+##########################################################################
+
+EOF
 
 ####################
 # Input Parameters #
@@ -209,7 +225,7 @@ do
         h) print_usage
            ;;
 
-        s) doSwitchToInteractiveShell=$TRUE
+        s) doSwitchToInteractiveShell=0
            ;;
 
         '?') print_usage_with_error_message "invalid option -$OPTARG"
@@ -217,6 +233,7 @@ do
              ;;
     esac
 done
+
 shift $((OPTIND - 1)) #this leaves any remaining arguments, but removes the options we have processed
 
 ##################
@@ -339,14 +356,33 @@ done
 # Start ssh daemon #
 ####################
 
-service ssh start
+if ! service ssh status > /dev/null
+then
+    service ssh start
+fi
 
 #############################################
 # Optionally switch to an interactive shell #
 #############################################
-if [ ${doSwitchToInteractiveShell} == ${TRUE} ]
+if [ "${doSwitchToInteractiveShell}" = "0" ]
 then
-    exec bash -l
+
+    if [[ -t "$standard_input_fd" || -p /dev/stdin ]]
+    then
+        printf "\n${INTERACTIVE_SHELL_WELCOME_MSG}\n\n"
+        eval "$BASH"
+    else
+        printf "\nWARNING: This is not an interactive shell. Try using docker -it optional flags. Ignoring -s flag.\n" >&2
+    fi
+    
+fi
+
+#################################################################################
+# run trailing commands passed in after all other arguments have been processed #
+#################################################################################
+if [ "${*}" ]
+then
+    eval "${*}"
 fi
 
 exit 0

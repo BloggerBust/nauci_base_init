@@ -14,4 +14,4 @@ EXPOSE 22
 
 # see https://github.com/BloggerBust/nauci_base_init for usage
 COPY ./nauci_base_init.sh /usr/local/bin
-ENTRYPOINT ["nauci_base_init.sh", "-s"]
+ENTRYPOINT ["nauci_base_init.sh"]
