@@ -62,7 +62,7 @@ brackets as the leading text of the parameters definition.
        -u: [usb] the name of the usb group.
 
        -U: [85] the GID of the usb group.
-       
+
        -v: [/shared] a directory passed to docker-run as a volume with
            posixacl support enabled. For each user passed to the -n
            option a directory with the same name as that user will be
@@ -317,7 +317,7 @@ do
         ( IFS=,; useradd ${userName} -s /bin/bash -mG "${groupNames[*]}" )
     fi
 
-    # create the dev directory with setgid and develoepr group ownership    
+    # create the dev directory with setgid and develoepr group ownership
     realUserDevDirectory="${developerVolumeName}/${userName}/dev"
     if ! [ -d "${realUserDevDirectory}" ] || ! [ -g "${realUserDevDirectory}" ]
     then
@@ -344,7 +344,7 @@ do
         ln -sn ${realUserDevDirectory} ${userHome}/dev
         chown -h ${userName}:${developerGroupName} ${userHome}/dev
     fi
-    
+
     # ssh
     mkdir -p ${userHome}/.ssh/
     sed 's/#[[:space:]]*ForwardX11 no/ForwardX11 yes/' /etc/ssh/ssh_config | sed 's/#[[:space:]]*ForwardX11Trusted yes/ForwardX11Trusted yes/' > $userHome/.ssh/config
@@ -367,6 +367,8 @@ fi
 if [ "${doSwitchToInteractiveShell}" = "0" ]
 then
 
+    standard_input_fd=0 #file descriptor for standard input
+
     if [[ -t "$standard_input_fd" || -p /dev/stdin ]]
     then
         printf "\n${INTERACTIVE_SHELL_WELCOME_MSG}\n\n"
@@ -374,7 +376,7 @@ then
     else
         printf "\nWARNING: This is not an interactive shell. Try using docker -it optional flags. Ignoring -s flag.\n" >&2
     fi
-    
+
 fi
 
 #################################################################################
