@@ -26,6 +26,9 @@ I have released this software under the terms of the Apache License, Version 2.0
 >     [-d groupname] [-D groupid] [-u groupname] [-U groupid]
 >
 >     Author: trevor.wilson@nauci.org
+>     Depends on: POSIX ACL and extended attributes. It may work on other
+>     ACL types depending on how ACL interoperability is handled, but I have
+>     not tested that behaviour.
 >
 >     The nauci_base_init.sh is the entry point for the nauci_base_entry
 >     docker image and is intended to facilitate the initial setup of a
@@ -64,6 +67,17 @@ I have released this software under the terms of the Apache License, Version 2.0
 >
 >        -U: [85] the GID of the usb group.
 >
+>        -v: [/shared] a directory passed to docker-run as a volume with
+>            posixacl support enabled. For each user passed to the -n
+>            option a directory with the same name as that user will be
+>            created as a child of /shared. Default ACL rules will be
+>            set giving the developer group rwx permissions on the named
+>            directories. A soft link from the user's dev directory will
+>            be created to their named directory under /shared.
+>
 >        -s: switch to an interactive shell instead of exiting.
 >
 >        -h: displays this help document.
+>
+>     The first none-optional parameter will be evaluated as a shell
+>     command.
